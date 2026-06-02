@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>随机笑话生成器</title>
+  <style>
+    :root{--bg:#f7f8fb;--card:#fff;--muted:#666;--accent:#2563eb}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial; background:var(--bg); margin:0; padding:2rem; display:flex; align-items:center; justify-content:center; min-height:100vh}
+    .wrap{width:min(760px,96%); background:var(--card); padding:1.6rem; border-radius:12px; box-shadow:0 6px 24px rgba(18,18,18,.06)}
+    h1{margin:0 0 .2rem; font-size:1.4rem}
+    .meta{color:var(--muted); font-size:.9rem; margin-bottom:1rem}
+    .joke{min-height:3.2rem; font-size:1.15rem; line-height:1.45; color:#111}
+    .controls{margin-top:1rem; display:flex; gap:.6rem; align-items:center}
+    button{background:var(--accent); color:#fff; border:0; padding:.6rem .9rem; border-radius:8px; cursor:pointer}
+    button.secondary{background:#e6eefc; color:var(--accent)}
+    .small{font-size:.9rem; color:var(--muted)}
+    .source{float:right; font-size:.85rem; color:var(--muted)}
+    .copy{background:#4b5563}
+    pre{white-space:pre-wrap; margin:0}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div>
+        <h1>随机笑话生成器</h1>
+        <div class="meta">数据源：<a href="https://v2.jokeapi.dev" target="_blank">JokeAPI</a> （屏蔽 nsfw/racist/sexist/explicit）</div>
+      </div>
+      <div class="source small">按 <strong>G</strong> 获取新笑话</div>
+    </div>
+
+    <div id="joke" class="joke">点击“Get Joke”开始</div>
+    <div id="info" class="small" style="margin-top:.6rem;color:var(--muted)"></div>
+
+    <div class="controls">
+      <button id="btn">Get Joke</button>
+      <button id="copy" class="secondary copy">Copy</button>
+      <label style="margin-left:auto" class="small"><input id="auto" type="checkbox" /> 自动每 10 秒刷新</label>
+    </div>
+  </div>
+
+  <script>
+    const API = 'https://v2.jokeapi.dev/joke/Any?blacklistFlags=nsfw,racist,sexist,explicit';
+    const btn = document.getElementById('btn');
+    const jokeEl = document.getElementById('joke');
+    const infoEl = document.getElementById('info');
+    const copyBtn = document.getElementById('copy');
+    const autoChk = document.getElementById('auto');
+    let autoTimer = null;
+
+    async function fetchJoke() {
+      try {
+        btn.disabled = true;
+        btn.textContent = 'Loading…';
+        infoEl.textContent = '';
+        const res = await fetch(API);
+        if (!res.ok) throw new Error('API 返回 ' + res.status);
+        const data = await res.json();
+        renderJoke(data);
+      } catch (e) {
+        jokeEl.textContent = '获取笑话失败：' + e.message;
+        infoEl.textContent = '';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Get Joke';
+      }
+    }
+
+    function renderJoke(data) {
+      if (!data) {
+        jokeEl.textContent = '未收到数据';
+        return;
+      }
+      let text = '';
+      if (data.type === 'single') {
+        text = data.joke;
+      } else if (data.type === 'twopart') {
+        // 显示 setup 和 delivery，带一点间距
+        text = data.setup + '\n\n' + data.delivery;
+      } else {
+        text = JSON.stringify(data);
+      }
+      jokeEl.innerHTML = '<pre>' + escapeHtml(text) + '</pre>';
+      infoEl.textContent = `类别: ${data.category || 'Unknown'} · 类型: ${data.type || ''}`;
+      // store for copy
+      jokeEl.dataset.text = text;
+    }
+
+    function escapeHtml(s) {
+      return s.replace(/[&<>\"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+    }
+
+    copyBtn.addEventListener('click', async () => {
+      const t = jokeEl.dataset.text || jokeEl.innerText;
+      try {
+        await navigator.clipboard.writeText(t);
+        copyBtn.textContent = 'Copied';
+        setTimeout(() => copyBtn.textContent = 'Copy', 1500);
+      } catch {
+        alert('无法复制到剪贴板');
+      }
+    });
+
+    btn.addEventListener('click', fetchJoke);
+
+    // keyboard shortcut: G
+    document.addEventListener('keydown', (e) => {
+      if (e.key.toLowerCase() === 'g') fetchJoke();
+    });
+
+    // auto-refresh
+    autoChk.addEventListener('change', () => {
+      if (autoChk.checked) {
+        autoTimer = setInterval(fetchJoke, 10000);
+      } else {
+        clearInterval(autoTimer);
+        autoTimer = null;
+      }
+    });
+
+    // optional: fetch first joke on load
+    // fetchJoke();
+  </script>
+</body>
+</html>
