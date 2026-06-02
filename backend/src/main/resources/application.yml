@@ -1,14 +1,14 @@
 security:
   jwt:
-    secret: "8650334ckf"
-    expiration: 3600000 # 1 hour in ms
-    refresh-expiration: 604800000 # 7 days in ms
+    secret: ${SECURITY_JWT_SECRET:changeme}
+    expiration: ${SECURITY_JWT_EXPIRATION:3600000} # 1 hour in ms
+    refresh-expiration: ${SECURITY_JWT_REFRESH_EXPIRATION:604800000} # 7 days in ms
 
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/qlm
-    username: qlm
-    password: qlmpass
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/qlm}
+    username: ${SPRING_DATASOURCE_USERNAME:qlm}
+    password: ${SPRING_DATASOURCE_PASSWORD:qlmpass}
   jpa:
     hibernate:
       ddl-auto: validate
@@ -23,7 +23,7 @@ spring:
     locations: classpath:db/migration
 
 server:
-  port: 8080
+  port: ${SERVER_PORT:8080}
 
 logging:
   level:
